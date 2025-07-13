@@ -18,8 +18,6 @@ def main():
     else:
         data = {}
 
-    print(data)
-
     data[now_str] = arg
 
     with p.open('w') as f:
