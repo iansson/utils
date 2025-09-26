@@ -1,8 +1,6 @@
-import collections
 import re
 from PIL import Image
 import numpy as np
-import sys
 
 
 def str_to_bin(str : str) -> str:
