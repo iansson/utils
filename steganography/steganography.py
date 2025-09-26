@@ -42,12 +42,12 @@ def encode_on_pixel(pixel, msg_bit: str):
     if msg_bit != '1' and msg_bit != '0':
         raise ValueError(f"Error: Invalid message bit: {msg_bit}")
     
-    red_channel, blue_channel, green_channel = pixel
+    red_channel, green_channel, blue_channel = pixel
 
     binary = list(f'{blue_channel:08b}') # Assuming the channel consists of 8 bits (which is standard in most formats)
     binary[-1] = msg_bit
 
-    new_pixel = red_channel, np.uint8(int(''.join(binary), 2)), green_channel 
+    new_pixel = red_channel, green_channel, np.uint8(int(''.join(binary), 2))
 
     return new_pixel
 
@@ -72,7 +72,7 @@ def encode_message(pixels, msg):
     return pixels
 
 def decode_pixel(pixel):
-    red_channel, blue_channel, green_channel = pixel
+    red_channel, green_channel, blue_channel = pixel
     binary = list(f'{blue_channel:08b}') # Assuming the channel consists of 8 bits (which is standard in most formats)
     return binary[-1]
 
