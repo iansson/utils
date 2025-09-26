@@ -1,3 +1,4 @@
+import collections
 import re
 from PIL import Image
 import numpy as np
@@ -83,8 +84,9 @@ def decode_message(pixels):
             bits.append(decode_pixel(pixel))
 
     decoded = bin_to_str(bits)
-    msg_size, msg = re.split(r"\|\|", decoded, maxsplit=1)
-    msg_size = int(msg_size)
+
+    msg_size_str, msg = re.split(r"\|\|", decoded, maxsplit=1)
+    msg_size = int(msg_size_str)
     
     return msg[:msg_size]
 
@@ -97,15 +99,18 @@ def main():
 
     msg = "War and hate, war and hate!"
 
-    pixels = load_image("nomorefanmail.jpg")
-    encode_message(pixels, msg)
-    store_image(pixels, "secret.jpg")
+    pixels1 = load_image("nomorefanmail.png")
+    encode_message(pixels1, msg)
+    store_image(pixels1, "secret.png") ## You can't store in jpg, since it's a lossy format. The message will break!
 
-    decoded = decode_message(pixels)
+    decoded1 = decode_message(pixels1)
 
-    print(f"secret message:     {msg}")
-    print(f"decoded from image: {''.join(decoded)}")
+    print(f"secret message:           {msg}")
+    print(f"decoded from image:       {decoded1}")
 
+    pixels2 = load_image("secret.png") 
+    decoded2 = decode_message(pixels2)
+    print(f"decoded from saved image: {decoded2}")
 
 if __name__ == "__main__":
         main()
