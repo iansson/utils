@@ -1,28 +1,40 @@
 use std::collections::HashMap;
-
 use macroquad::prelude::*;
 
+#[derive(Clone, Copy, PartialEq, Eq)]
 enum PlayerType {
     Player1,
     Player2,
     None,
 }
 
-struct GameState {
-    board_state: HashMap<String, PlayerType>,
-    positions: HashMap<String, (f32, f32)>,
-}
-
-fn draw_board(p: f32, x_offset: f32, positions: &HashMap<String, (f32, f32)>) {
+fn draw_board(p: f32, x_offset: f32, positions: &HashMap<String, (f32, f32)>, board_state: &mut HashMap<String, PlayerType>) {
     let color: Color = BROWN;
 
     draw_lines(x_offset, p, color);
     draw_markers(positions, p, color);
+    draw_pieces(positions, board_state, p);
 
     fn draw_markers(positions: &HashMap<String, (f32, f32)>, p: f32, color: Color) {
         let r = p / 6.5;
 
         for (_key, (x, y)) in positions.iter() {
+            draw_circle(*x, *y, r, color);
+        }
+    }
+
+    fn draw_pieces(positions: &HashMap<String, (f32, f32)>, board_state: &mut HashMap<String, PlayerType>, p: f32) {
+        let r = p / 4.;
+        let mut color: Color;
+
+        for (key, (x, y)) in positions.iter() {
+
+            match board_state[key] {
+                PlayerType::Player1 => color = WHITE,
+                PlayerType::Player2 => color = BLACK,
+                PlayerType::None => continue,
+            }
+
             draw_circle(*x, *y, r, color);
         }
     }
@@ -195,14 +207,34 @@ fn define_hitboxes(positions: &HashMap<String, (f32, f32)>, p: f32) -> Vec<Circl
     return hitboxes
 }
 
-fn place_piece(click_x: f32, click_y: f32, p: f32, positions: &HashMap<String, (f32, f32)>) {
+fn place_piece(click_x: f32, click_y: f32, p: f32, positions: &HashMap<String, (f32, f32)>, board_state: &mut HashMap<String, PlayerType>, player_turn: PlayerType) -> bool {
     let mouse_circle = Circle::new(click_x, click_y, p / 9.);
-    let hitboxes = define_hitboxes(positions, p);
+    let r = p / 2.;
 
-    for circle in hitboxes.iter() {
-        if mouse_circle.overlaps(&circle) {
-            println!("You hit the thing!");
+    let mut selected_pos: Option<String> = None;
+
+    for (key, (x, y)) in positions.iter() {
+        let hitbox = Circle::new(*x,*y,r);
+
+        if mouse_circle.overlaps(&hitbox) {
+            println!("You hit {}", key);
+            selected_pos = Some(key.to_string())
         }
+    }
+
+    match selected_pos {
+        Some(x) => { 
+            board_state.insert(x, player_turn);
+            return true; }
+        None => return false,
+    }
+}
+
+fn swap_player_turn(turn: PlayerType) -> PlayerType {
+    match turn {
+        PlayerType::Player1 => PlayerType::Player2,
+        PlayerType::Player2 => PlayerType::Player1,
+        PlayerType::None => PlayerType::None,
     }
 }
 
@@ -227,22 +259,23 @@ async fn main() {
     
     // Board state should be a dictionary of tuples: eg game_state["a1"] = ((x, y), Player1)
     let mut board_state = new_board_state(p, x_offset);
+    let mut turn = PlayerType::Player1;
 
     loop {
-
         let p: f32 = screen_height() / 8.0; // position unit
         let x_offset = screen_width() / 2. - ((p * 6.) / 2.);
         let positions = update_positions(p, x_offset);
-
+        
         clear_background(BEIGE);
-        draw_board(p, x_offset, &positions);
+        draw_board(p, x_offset, &positions ,&mut board_state);
 
         if is_mouse_button_pressed(MouseButton::Left) {
             let (click_x, click_y) = mouse_position();
-            place_piece(click_x, click_y, p, &positions);
-
+            let change_turn = place_piece(click_x, click_y, p, &positions, &mut board_state, turn);
+            if change_turn {
+                turn = swap_player_turn(turn);
+            }
         }
-
-        next_frame().await
+        next_frame().await;
     }
 }
