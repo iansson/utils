@@ -14,6 +14,7 @@ enum GamePhase {
     Flying, // If a player only has 3 pieces, they may move their pieces without restriction
 }
 
+#[derive(Clone, Copy, PartialEq, Eq)]
 struct Piece {
     color: PlayerType,
     movable: bool,
@@ -28,10 +29,35 @@ struct Game {
     player2_placed: u16,
     active_turn: PlayerType,
     board_state: HashMap<String, Option<Piece>>,
+
+    scoring_vertical: Vec<Vec<String>>,
+    scoring_horisontal: Vec<Vec<String>>,
 }
 
 impl Game {
     pub fn new() -> Game {
+        let scoring_vertical: Vec<Vec<String>> = vec![
+            vec!["a1".to_string(), "a2".to_string(), "a3".to_string()],
+            vec!["b1".to_string(), "b2".to_string(), "b3".to_string()],
+            vec!["c1".to_string(), "c2".to_string(), "c3".to_string()],
+            vec!["d1".to_string(), "d2".to_string(), "d3".to_string()],
+            vec!["e1".to_string(), "e2".to_string(), "e3".to_string()],
+            vec!["f1".to_string(), "f2".to_string(), "f3".to_string()],
+            vec!["g1".to_string(), "g2".to_string(), "g3".to_string()],
+            vec!["h1".to_string(), "h2".to_string(), "h3".to_string()],
+        ];
+
+        let scoring_horisontal: Vec<Vec<String>> = vec![
+            vec!["a1".to_string(), "g1".to_string(), "c1".to_string()],
+            vec!["b1".to_string(), "g2".to_string(), "d1".to_string()],
+            vec!["e1".to_string(), "g3".to_string(), "f1".to_string()],
+            vec!["a2".to_string(), "b2".to_string(), "e2".to_string()],
+            vec!["f2".to_string(), "d2".to_string(), "c2".to_string()],
+            vec!["e3".to_string(), "h1".to_string(), "f3".to_string()],
+            vec!["b3".to_string(), "h2".to_string(), "d3".to_string()],
+            vec!["a3".to_string(), "h3".to_string(), "c3".to_string()],
+        ];
+
         return Game {
             player1_phase: GamePhase::Setup,
             player2_phase: GamePhase::Setup,
@@ -41,6 +67,8 @@ impl Game {
             player2_placed: 0,
             active_turn: PlayerType::Player1,
             board_state: new_board_state(),
+            scoring_vertical: scoring_vertical,
+            scoring_horisontal: scoring_horisontal,
         };
 
         fn new_board_state() -> HashMap<String, Option<Piece>> {
@@ -249,18 +277,81 @@ impl Game {
         return selected_pos;
     }
 
+    pub fn get_piece(&self, pos: String) -> Option<Piece> {
+        let piece = self.board_state[&pos];
+        return piece;
+    }
+
+    pub fn update_score(&mut self, pos: String) {
+        let mut score = 0;
+        // Check horisontal lines
+        score += self.get_score(pos.to_string(), &self.scoring_horisontal);
+        // Check vertical lines
+        score += self.get_score(pos.to_string(), &self.scoring_vertical);
+
+        println!("{}", score);
+
+        // Give the score to the right player
+        match self.active_turn {
+            PlayerType::Player1 => self.player1_score += score,
+            PlayerType::Player2 => self.player2_score += score,
+        }
+    }
+
+    fn get_score(&self, pos: String, scoring_vector: &Vec<Vec<String>>) -> u16 {
+
+        for line in scoring_vector.iter() {
+            if !line.contains(&pos) {
+                continue;
+            }
+
+            // update score if line is filled by active player
+            let mut scored = true;
+            for scoring_pos in line {
+                match self.get_piece(scoring_pos.to_string()) {
+                    None => {
+                        scored = false;
+                        break;
+                    },
+                    Some(piece) => {
+                        if piece.color != self.active_turn {
+                            scored = false;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if scored {
+                return 1;
+            }
+        }
+        return 0;
+    }
+
     pub fn place_piece(&mut self, position: Option<String>) {
         match position {
-            Some(x) => match self.board_state[&x] {
+            Some(pos) => match self.board_state[&pos] {
                 Some(_) => return,
                 None => {
+                    // Logic for placing the piece
                     self.board_state.insert(
-                        x,
+                        pos.to_string(),
                         Some(Piece {
                             color: self.active_turn,
                             movable: true,
                         }),
                     );
+                    // Count placed pieces
+                    match self.active_turn {
+                        PlayerType::Player1 => self.player1_placed += 1,
+                        PlayerType::Player2 => self.player2_placed += 1,
+                    }
+
+                    // Update score
+                    self.update_score(pos.to_string());
+
+                    // Change turn
                     self.swap_turn();
                 }
             },
