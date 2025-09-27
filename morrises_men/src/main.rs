@@ -1,20 +1,28 @@
+use std::collections::HashMap;
+
 use macroquad::prelude::*;
 
-enum PlayerTurn {
+enum PlayerType {
     Player1,
     Player2,
+    None,
 }
 
-fn draw_board(p: f32, x_offset: f32, positions: &Vec<(f32, f32)>) {
+struct GameState {
+    board_state: HashMap<String, PlayerType>,
+    positions: HashMap<String, (f32, f32)>,
+}
+
+fn draw_board(p: f32, x_offset: f32, positions: &HashMap<String, (f32, f32)>) {
     let color: Color = BROWN;
 
     draw_lines(x_offset, p, color);
     draw_markers(positions, p, color);
 
-    fn draw_markers(positions: &Vec<(f32, f32)>, p: f32, color: Color) {
+    fn draw_markers(positions: &HashMap<String, (f32, f32)>, p: f32, color: Color) {
         let r = p / 6.5;
 
-        for (x, y) in positions.iter() {
+        for (_key, (x, y)) in positions.iter() {
             draw_circle(*x, *y, r, color);
         }
     }
@@ -69,7 +77,9 @@ fn draw_board(p: f32, x_offset: f32, positions: &Vec<(f32, f32)>) {
     }
 }
 
-fn define_positions(p: f32, x_offset: f32) -> Vec<(f32, f32)>{
+fn update_positions(p: f32, x_offset: f32) -> HashMap<String, (f32, f32)> {
+    let mut positions: HashMap<String, (f32, f32)> = HashMap::new();
+
     let pos_a1 = (x_offset, p);
     let pos_a2 = (x_offset, p * 4.);
     let pos_a3 = (x_offset, p * 7.);
@@ -102,22 +112,91 @@ fn define_positions(p: f32, x_offset: f32) -> Vec<(f32, f32)>{
     let pos_h2 = (x_offset + p * 3., p * 6.);
     let pos_h3 = (x_offset + p * 3., p * 7.);
 
-    let positions = vec![pos_a1, pos_a2, pos_a3, pos_b1, pos_b2, pos_b3, pos_c1, pos_c2, pos_c3, pos_d1, pos_d2, pos_d3, pos_e1, pos_e2, pos_e3, pos_f1, pos_f2, pos_f3, pos_g1, pos_g2, pos_g3, pos_h1, pos_h2, pos_h3];
+    positions.insert("a1".to_string(), pos_a1);
+    positions.insert("a2".to_string(), pos_a2);
+    positions.insert("a3".to_string(), pos_a3);
+
+    positions.insert("b1".to_string(), pos_b1);
+    positions.insert("b2".to_string(), pos_b2);
+    positions.insert("b3".to_string(), pos_b3);
+
+    positions.insert("c1".to_string(), pos_c1);
+    positions.insert("c2".to_string(), pos_c2);
+    positions.insert("c3".to_string(), pos_c3);
+
+    positions.insert("d1".to_string(), pos_d1);
+    positions.insert("d2".to_string(), pos_d2);
+    positions.insert("d3".to_string(), pos_d3);
+
+    positions.insert("e1".to_string(), pos_e1);
+    positions.insert("e2".to_string(), pos_e2);
+    positions.insert("e3".to_string(), pos_e3);
+
+    positions.insert("f1".to_string(), pos_f1);
+    positions.insert("f2".to_string(), pos_f2);
+    positions.insert("f3".to_string(), pos_f3);
+
+    positions.insert("g1".to_string(), pos_g1);
+    positions.insert("g2".to_string(), pos_g2);
+    positions.insert("g3".to_string(), pos_g3);
+
+    positions.insert("h1".to_string(), pos_h1);
+    positions.insert("h2".to_string(), pos_h2);
+    positions.insert("h3".to_string(), pos_h3);
+
     return positions;
 }
 
-fn define_hitboxes(positions: &Vec<(f32, f32)>, p: f32) -> Vec<Circle> {
+fn new_board_state(_p: f32, _x_offset: f32) -> HashMap<String, PlayerType> {
+    let mut board_state: HashMap<String, PlayerType> = HashMap::new();
+
+    board_state.insert("a1".to_string(), PlayerType::None);
+    board_state.insert("a2".to_string(), PlayerType::None);
+    board_state.insert("a3".to_string(), PlayerType::None);
+
+    board_state.insert("b1".to_string(), PlayerType::None);
+    board_state.insert("b2".to_string(), PlayerType::None);
+    board_state.insert("b3".to_string(), PlayerType::None);
+
+    board_state.insert("c1".to_string(), PlayerType::None);
+    board_state.insert("c2".to_string(), PlayerType::None);
+    board_state.insert("c3".to_string(), PlayerType::None);
+
+    board_state.insert("d1".to_string(), PlayerType::None);
+    board_state.insert("d2".to_string(), PlayerType::None);
+    board_state.insert("d3".to_string(), PlayerType::None);
+
+    board_state.insert("e1".to_string(), PlayerType::None);
+    board_state.insert("e2".to_string(), PlayerType::None);
+    board_state.insert("e3".to_string(), PlayerType::None);
+
+    board_state.insert("f1".to_string(), PlayerType::None);
+    board_state.insert("f2".to_string(), PlayerType::None);
+    board_state.insert("f3".to_string(), PlayerType::None);
+
+    board_state.insert("g1".to_string(), PlayerType::None);
+    board_state.insert("g2".to_string(), PlayerType::None);
+    board_state.insert("g3".to_string(), PlayerType::None);
+
+    board_state.insert("h1".to_string(), PlayerType::None);
+    board_state.insert("h2".to_string(), PlayerType::None);
+    board_state.insert("h3".to_string(), PlayerType::None);
+
+    return board_state;
+}
+
+fn define_hitboxes(positions: &HashMap<String, (f32, f32)>, p: f32) -> Vec<Circle> {
     let mut hitboxes = vec![];
     let r = p / 2.;
-    for (x, y) in positions.iter() {
+    for (_key, (x, y)) in positions.iter() {
         let hitbox = Circle::new(*x,*y,r);
         hitboxes.push(hitbox);
     }
     return hitboxes
 }
 
-fn place_piece(click_x: f32, click_y: f32, p: f32, positions: &Vec<(f32, f32)>) {
-    let mouse_circle = Circle::new(click_x, click_y, p / 3.);
+fn place_piece(click_x: f32, click_y: f32, p: f32, positions: &HashMap<String, (f32, f32)>) {
+    let mouse_circle = Circle::new(click_x, click_y, p / 9.);
     let hitboxes = define_hitboxes(positions, p);
 
     for circle in hitboxes.iter() {
@@ -142,12 +221,18 @@ fn window_conf() -> Conf {
 async fn main() {
     
     // set_fullscreen(true);
+    
+    let p: f32 = screen_height() / 8.0; // position unit
+    let x_offset = screen_width() / 2. - ((p * 6.) / 2.);
+    
+    // Board state should be a dictionary of tuples: eg game_state["a1"] = ((x, y), Player1)
+    let mut board_state = new_board_state(p, x_offset);
 
     loop {
 
         let p: f32 = screen_height() / 8.0; // position unit
         let x_offset = screen_width() / 2. - ((p * 6.) / 2.);
-        let positions = define_positions(p, x_offset);
+        let positions = update_positions(p, x_offset);
 
         clear_background(BEIGE);
         draw_board(p, x_offset, &positions);
