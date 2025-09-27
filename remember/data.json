@@ -1,5 +1,5 @@
 {
-    "2025/07/13 15:57:21": "sh -c \"$(curl -sS https://raw.githubusercontent.com/Vendicated/VencordInstaller/main/install.sh)\"",
-    "2025/07/13 15:57:53": "sh -c \"$(curl -sS https://raw.githubusercontent.com/Vendicated/VencordInstaller/main/install.sh)\"",
-    "2025/07/13 16:02:30": "sh -c \"$(curl -sS https://raw.githubusercontent.com/Vendicated/VencordInstaller/main/install.sh)\""
+    "2025/09/27 11:05:33": "cowsay moo",
+    "2025/09/27 11:07:55": "fortune | cowsay",
+    "vencord-updater": "sh -c \"$(curl -sS https://raw.githubusercontent.com/Vendicated/VencordInstaller/main/install.sh)\""
 }
