@@ -1,7 +1,7 @@
 # Morrises Men
 All Morrrises' men will find their way here. 
 
-This is an educational project, created by me, for me. The goal for the project is to:
+This is an educational project. The goal for the project is to:
 
 - Learn about UI/UX design
 - Create a framework suitable for multiple variations of Nine Men's Morris
@@ -13,7 +13,7 @@ This is an educational project, created by me, for me. The goal for the project 
 - [x] Render board
 - [x] Render positions
 - [x] Hitbox logic
-- [ ] Render pieces
+- [x] Render pieces
 
 ---
 
