@@ -12,21 +12,24 @@ enum GamePhase {
     Setup,  // Each player places 9 pieces
     Moving, // Each player moves their own pieces
     Flying, // If a player only has 3 pieces, they may move their pieces without restriction
+    Remove, // After a player has completed a string, they remove a piece from the opponent
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 struct Piece {
     color: PlayerType,
-    movable: bool,
+    unlocked: bool, // A locked piece may not be removed unless there are no other pieces available
 }
 
 struct Game {
     player1_phase: GamePhase,
     player1_score: u16,
     player1_placed: u16,
+    player1_piece_total: u16,
     player2_phase: GamePhase,
     player2_score: u16,
     player2_placed: u16,
+    player2_piece_total: u16,
     active_turn: PlayerType,
     board_state: HashMap<String, Option<Piece>>,
     holding_piece: Option<Piece>,
@@ -67,6 +70,8 @@ impl Game {
             player2_score: 0,
             player1_placed: 0,
             player2_placed: 0,
+            player1_piece_total: 9,
+            player2_piece_total: 9,
             active_turn: PlayerType::Player1,
             board_state: new_board_state(),
             holding_piece: None,
@@ -116,8 +121,8 @@ impl Game {
             &self.holding_pos,
         );
 
-        let score_str = format!("{} | {}", self.player1_score, self.player2_score);
-        draw_text(&score_str, p / 2., p / 2., p / 2., BLACK);
+        // let score_str = format!("{} | {}", self.player1_score, self.player2_score);
+        // draw_text(&score_str, p / 2., p / 2., p / 2., BLACK);
 
         fn draw_board(
             p: f32,
@@ -151,12 +156,6 @@ impl Game {
                 let mut color: Color;
 
                 for (key, (x, y)) in positions.iter() {
-                    // match board_state[key] {
-                    // PlayerType::Player1 => color = WHITE,
-                    // PlayerType::Player2 => color = BLACK,
-                    // PlayerType::None => continue,
-                    // }
-
                     // Don't draw the skipped position
                     if key == skip_pos {
                         continue;
@@ -302,23 +301,23 @@ impl Game {
         return piece;
     }
 
-    pub fn update_score(&mut self, pos: String) {
-        let mut score = 0;
+    pub fn update_score(&mut self, pos: String) -> bool {
         // Check horisontal lines
-        score += self.get_score(pos.to_string(), &self.scoring_horisontal);
+        let mut scored = self.get_score(pos.to_string(), &self.scoring_horisontal);
         // Check vertical lines
-        score += self.get_score(pos.to_string(), &self.scoring_vertical);
-
-        println!("{}", score);
+        scored = scored || self.get_score(pos.to_string(), &self.scoring_vertical);
 
         // Give the score to the right player
-        match self.active_turn {
-            PlayerType::Player1 => self.player1_score += score,
-            PlayerType::Player2 => self.player2_score += score,
-        }
+        // match self.active_turn {
+        //     PlayerType::Player1 => self.player1_score += score,
+        //     PlayerType::Player2 => self.player2_score += score,
+        // }
+
+        return scored;
     }
 
-    fn get_score(&self, pos: String, scoring_vector: &Vec<Vec<String>>) -> u16 {
+    fn get_score(&self, pos: String, scoring_vector: &Vec<Vec<String>>) -> bool {
+        let mut res = false;
         for line in scoring_vector.iter() {
             if !line.contains(&pos) {
                 continue;
@@ -342,10 +341,14 @@ impl Game {
             }
 
             if scored {
-                return 1;
+                res = true;
+                for scoring_pos in line {
+                    let mut piece = self.get_piece(scoring_pos.to_string()).unwrap();
+                    piece.unlocked = false;
+                }
             }
         }
-        return 0;
+        return res;
     }
 
     fn set_active_phase(&mut self, phase: GamePhase) {
@@ -378,6 +381,7 @@ impl Game {
             GamePhase::Setup => self.place_piece(position),
             GamePhase::Moving => self.move_piece(position),
             GamePhase::Flying => self.move_piece(position),
+            GamePhase::Remove => self.remove_piece(position),
         }
     }
 
@@ -431,6 +435,77 @@ impl Game {
         }
     }
 
+    pub fn remove_piece(&mut self, position: Option<String>) {
+        match position {
+            // Check if piece selection was successful
+            None => return,
+            Some(pos) => {
+                match self.board_state[&pos] {
+                    None => return,
+                    Some(_) => {
+                        let unlocked_positions = self.get_unlocked_positions(self.opponent_color());
+
+                        // If requirements met, remove the piece
+                        if unlocked_positions.len() == 0 || unlocked_positions.contains(&pos) {
+                            // Update piece total counter
+                            match self.active_turn {
+                                PlayerType::Player1 => self.player2_piece_total -= 1,
+                                PlayerType::Player2 => self.player1_piece_total -= 1,
+                            }
+                            // Remove the piece from the board
+                            self.board_state.insert(pos, None);
+                            // Go back to the previous state
+                            self.update_phase(self.active_turn);
+
+                            // Swap turn
+                            self.swap_turn();
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    fn update_phase(&mut self, color: PlayerType) {
+        match color {
+            PlayerType::Player1 => {
+                self.player1_phase = if self.player1_placed < 9 {
+                    GamePhase::Setup
+                } else if self.player1_piece_total <= 3 {
+                    GamePhase::Flying
+                } else {
+                    GamePhase::Moving
+                }
+            }
+            PlayerType::Player2 => {
+                self.player2_phase = if self.player2_placed < 9 {
+                    GamePhase::Setup
+                } else if self.player2_piece_total <= 3 {
+                    GamePhase::Flying
+                } else {
+                    GamePhase::Moving
+                }
+            }
+        }
+    }
+
+    fn get_unlocked_positions(&self, color: PlayerType) -> Vec<String> {
+        let mut res = vec![];
+
+        for (key, piece) in self.board_state.iter() {
+            match piece {
+                None => continue,
+                Some(piece) => {
+                    if piece.color == color && piece.unlocked {
+                        res.push(key.to_string());
+                    }
+                }
+            }
+        }
+
+        return res;
+    }
+
     pub fn move_piece(&mut self, position: Option<String>) {
         // Check if we are already holding a piece
         match self.holding_piece {
@@ -478,7 +553,7 @@ impl Game {
                         pos.to_string(),
                         Some(Piece {
                             color: self.active_turn,
-                            movable: true,
+                            unlocked: true,
                         }),
                     );
                     // Remove piece from board
@@ -486,8 +561,15 @@ impl Game {
                     // Remove piece from hand
                     self.reset_hand_piece();
 
-                    // Change turn
-                    self.swap_turn();
+                    // Update score
+                    let scored = self.update_score(pos.to_string());
+
+                    if scored {
+                        self.set_active_phase(GamePhase::Remove);
+                    } else {
+                        // Change turn
+                        self.swap_turn();
+                    }
                 }
                 // The position has a piece
                 Some(_) => {
@@ -501,7 +583,7 @@ impl Game {
         }
     }
 
-    fn place_piece(&mut self, position: Option<String>) {
+    pub fn place_piece(&mut self, position: Option<String>) {
         match position {
             // Check if piece selection was successful
             None => return,
@@ -514,7 +596,7 @@ impl Game {
                         pos.to_string(),
                         Some(Piece {
                             color: self.active_turn,
-                            movable: true,
+                            unlocked: true,
                         }),
                     );
 
@@ -522,16 +604,21 @@ impl Game {
                         // Update placed count
                         let placed_count = self.increment_placed();
                         // Change to 'Moving' phase if all pieces have been placed
-                        if placed_count >= 9 {
-                            self.set_active_phase(GamePhase::Moving);
-                        }
+                        // if placed_count >= 9 {
+                        //     self.set_active_phase(GamePhase::Moving);
+                        // }
+                        self.update_phase(self.active_turn);
                     }
 
                     // Update score
-                    self.update_score(pos.to_string());
+                    let scored = self.update_score(pos.to_string());
 
-                    // Change turn
-                    self.swap_turn();
+                    if scored {
+                        self.set_active_phase(GamePhase::Remove);
+                    } else {
+                        // Change turn
+                        self.swap_turn();
+                    }
                 }
             },
         }
@@ -541,6 +628,13 @@ impl Game {
         match self.active_turn {
             PlayerType::Player1 => return self.player1_phase.clone(),
             PlayerType::Player2 => return self.player2_phase.clone(),
+        }
+    }
+
+    pub fn opponent_color(&self) -> PlayerType {
+        match self.active_turn {
+            PlayerType::Player1 => return PlayerType::Player2,
+            PlayerType::Player2 => return PlayerType::Player1,
         }
     }
 }

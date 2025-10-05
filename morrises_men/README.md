@@ -10,10 +10,14 @@ This is an educational project. The goal for the project is to:
 
 # TODO
 
+**functional requirements**
 - [x] Render board
 - [x] Render positions
 - [x] Hitbox logic
 - [x] Render pieces
+- [ ] Line completion yeilds opponent piece removal
+**optional requirements**
+- [ ] render valid moves
 
 ---
 
