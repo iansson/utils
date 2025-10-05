@@ -1,13 +1,13 @@
 use macroquad::prelude::*;
 use std::collections::HashMap;
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 enum PlayerType {
     Player1,
     Player2,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 enum GamePhase {
     Setup,  // Each player places 9 pieces
     Moving, // Each player moves their own pieces
@@ -15,7 +15,7 @@ enum GamePhase {
     Remove, // After a player has completed a string, they remove a piece from the opponent
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 struct Piece {
     color: PlayerType,
     unlocked: bool, // A locked piece may not be removed unless there are no other pieces available
@@ -121,8 +121,8 @@ impl Game {
             &self.holding_pos,
         );
 
-        // let score_str = format!("{} | {}", self.player1_score, self.player2_score);
-        // draw_text(&score_str, p / 2., p / 2., p / 2., BLACK);
+        let str = format!("{:?} | {:?}", self.active_turn, self.active_game_state());
+        draw_text(&str, p / 2., p / 2., p / 2., BLACK);
 
         fn draw_board(
             p: f32,
@@ -136,6 +136,7 @@ impl Game {
 
             draw_lines(x_offset, p, color);
             draw_markers(positions, p, color);
+            draw_locks(positions, board_state, p);
             draw_pieces(positions, board_state, p, skip_pos);
 
             fn draw_markers(positions: &HashMap<String, (f32, f32)>, p: f32, color: Color) {
@@ -143,6 +144,26 @@ impl Game {
 
                 for (_key, (x, y)) in positions.iter() {
                     draw_circle(*x, *y, r, color);
+                }
+            }
+
+            fn draw_locks(
+                positions: &HashMap<String, (f32, f32)>,
+                board_state: &mut HashMap<String, Option<Piece>>,
+                p: f32,
+            ) {
+                let r = p / 3.6;
+
+                for (key, (x, y)) in positions.iter() {
+
+                    match &board_state[key] {
+                        Some(piece) => {
+                            if piece.unlocked {continue;}
+                        },
+                        None => continue,
+                    }
+
+                    draw_circle(*x, *y, r, YELLOW);
                 }
             }
 
