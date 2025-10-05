@@ -29,6 +29,8 @@ struct Game {
     player2_placed: u16,
     active_turn: PlayerType,
     board_state: HashMap<String, Option<Piece>>,
+    holding_piece: Option<Piece>,
+    holding_pos: String,
 
     scoring_vertical: Vec<Vec<String>>,
     scoring_horisontal: Vec<Vec<String>>,
@@ -67,6 +69,8 @@ impl Game {
             player2_placed: 0,
             active_turn: PlayerType::Player1,
             board_state: new_board_state(),
+            holding_piece: None,
+            holding_pos: "".to_string(),
             scoring_vertical: scoring_vertical,
             scoring_horisontal: scoring_horisontal,
         };
@@ -104,20 +108,30 @@ impl Game {
     }
 
     pub fn draw(&mut self, p: f32, x_offset: f32, positions: &HashMap<String, (f32, f32)>) {
-        draw_board(p, x_offset, positions, &mut self.board_state);
+        draw_board(
+            p,
+            x_offset,
+            positions,
+            &mut self.board_state,
+            &self.holding_pos,
+        );
+
+        let score_str = format!("{} | {}", self.player1_score, self.player2_score);
+        draw_text(&score_str, p / 2., p / 2., p / 2., BLACK);
 
         fn draw_board(
             p: f32,
             x_offset: f32,
             positions: &HashMap<String, (f32, f32)>,
             board_state: &mut HashMap<String, Option<Piece>>,
+            skip_pos: &String,
         ) {
             clear_background(BEIGE);
             let color: Color = BROWN;
 
             draw_lines(x_offset, p, color);
             draw_markers(positions, p, color);
-            draw_pieces(positions, board_state, p);
+            draw_pieces(positions, board_state, p, skip_pos);
 
             fn draw_markers(positions: &HashMap<String, (f32, f32)>, p: f32, color: Color) {
                 let r = p / 6.5;
@@ -131,6 +145,7 @@ impl Game {
                 positions: &HashMap<String, (f32, f32)>,
                 board_state: &mut HashMap<String, Option<Piece>>,
                 p: f32,
+                skip_pos: &String,
             ) {
                 let r = p / 4.;
                 let mut color: Color;
@@ -141,6 +156,11 @@ impl Game {
                     // PlayerType::Player2 => color = BLACK,
                     // PlayerType::None => continue,
                     // }
+
+                    // Don't draw the skipped position
+                    if key == skip_pos {
+                        continue;
+                    }
 
                     match &board_state[key] {
                         Some(piece) => match piece.color {
@@ -299,7 +319,6 @@ impl Game {
     }
 
     fn get_score(&self, pos: String, scoring_vector: &Vec<Vec<String>>) -> u16 {
-
         for line in scoring_vector.iter() {
             if !line.contains(&pos) {
                 continue;
@@ -312,7 +331,7 @@ impl Game {
                     None => {
                         scored = false;
                         break;
-                    },
+                    }
                     Some(piece) => {
                         if piece.color != self.active_turn {
                             scored = false;
@@ -329,9 +348,165 @@ impl Game {
         return 0;
     }
 
-    pub fn place_piece(&mut self, position: Option<String>) {
+    fn set_active_phase(&mut self, phase: GamePhase) {
+        match self.active_turn {
+            PlayerType::Player1 => self.player1_phase = phase,
+            PlayerType::Player2 => self.player2_phase = phase,
+        }
+    }
+
+    fn reset_hand_piece(&mut self) {
+        self.holding_piece = None;
+        self.holding_pos = "".to_string();
+    }
+
+    fn increment_placed(&mut self) -> u16 {
+        match self.active_turn {
+            PlayerType::Player1 => {
+                self.player1_placed += 1;
+                return self.player1_placed;
+            }
+            PlayerType::Player2 => {
+                self.player2_placed += 1;
+                return self.player2_placed;
+            }
+        }
+    }
+
+    pub fn next_action(&mut self, position: Option<String>) {
+        match self.active_game_state() {
+            GamePhase::Setup => self.place_piece(position),
+            GamePhase::Moving => self.move_piece(position),
+            GamePhase::Flying => self.move_piece(position),
+        }
+    }
+
+    fn get_valid_moves(&self) -> Vec<String> {
+        // the resulting vector does not include the position in question
+        // NOTE: to = position and from = self.holding_pos
+
+        let mut res = vec![];
+
+        // Get valid horisontal moves
+        for line in self.scoring_horisontal.iter() {
+            if !line.contains(&self.holding_pos) {
+                continue;
+            }
+            res = _get_valid_move(line, &res, &self.holding_pos);
+            break;
+        }
+        // Get valid vertical moves
+        for line in self.scoring_vertical.iter() {
+            if !line.contains(&self.holding_pos) {
+                continue;
+            }
+            res = _get_valid_move(line, &res, &self.holding_pos);
+            break;
+        }
+
+        return res;
+
+        fn _get_valid_move(line: &Vec<String>, res: &Vec<String>, pos: &String) -> Vec<String> {
+            let mut res = res.to_vec();
+
+            // Find position
+            let mut relative_pos: usize = 42;
+            for (i, i_pos) in line.iter().enumerate() {
+                if i_pos == pos {
+                    relative_pos = i;
+                }
+            }
+
+            match relative_pos {
+                0 => res.push(line[1].to_string()),
+                1 => {
+                    res.push(line[0].to_string());
+                    res.push(line[2].to_string());
+                }
+                2 => res.push(line[1].to_string()),
+                _ => panic!("Error: Faulty relative position '{}'", relative_pos),
+            }
+
+            return res;
+        }
+    }
+
+    pub fn move_piece(&mut self, position: Option<String>) {
+        // Check if we are already holding a piece
+        match self.holding_piece {
+            None => self.take_piece(position),
+            Some(piece) => self.move_piece_from_hand(position, piece),
+        }
+    }
+
+    fn take_piece(&mut self, position: Option<String>) {
         match position {
+            // Player didn't click on a valid marker
+            None => return,
+            // Player did click on a valid marker
             Some(pos) => match self.board_state[&pos] {
+                Some(piece) => {
+                    if piece.color == self.active_turn {
+                        self.holding_piece = Some(piece);
+                        self.holding_pos = pos;
+                    }
+                }
+                _ => return,
+            },
+        }
+    }
+
+    fn move_piece_from_hand(&mut self, position: Option<String>, piece: Piece) {
+        match position {
+            // Player didn't click on a valid marker
+            None => return,
+            // Player did click on a valid marker
+            Some(pos) => match self.board_state[&pos] {
+                // The position has no piece
+                None => {
+                    // Verify position
+                    if self.active_game_state() == GamePhase::Moving {
+                        let valid_moves = self.get_valid_moves();
+                        if !valid_moves.contains(&pos) {
+                            println!("Invalid move!");
+                            return;
+                        }
+                    }
+
+                    // Place the piece
+                    self.board_state.insert(
+                        pos.to_string(),
+                        Some(Piece {
+                            color: self.active_turn,
+                            movable: true,
+                        }),
+                    );
+                    // Remove piece from board
+                    self.board_state.insert(self.holding_pos.clone(), None);
+                    // Remove piece from hand
+                    self.reset_hand_piece();
+
+                    // Change turn
+                    self.swap_turn();
+                }
+                // The position has a piece
+                Some(_) => {
+                    // If the position selected is the same as the holding piece, put it back
+                    if pos == self.holding_pos {
+                        // Remove piece from hand
+                        self.reset_hand_piece();
+                    }
+                }
+            },
+        }
+    }
+
+    fn place_piece(&mut self, position: Option<String>) {
+        match position {
+            // Check if piece selection was successful
+            None => return,
+            Some(pos) => match self.board_state[&pos] {
+                // Check if there already is a piece at selected position
                 Some(_) => return,
                 None => {
                     // Logic for placing the piece
@@ -342,10 +517,14 @@ impl Game {
                             movable: true,
                         }),
                     );
-                    // Count placed pieces
-                    match self.active_turn {
-                        PlayerType::Player1 => self.player1_placed += 1,
-                        PlayerType::Player2 => self.player2_placed += 1,
+
+                    if self.active_game_state() == GamePhase::Setup {
+                        // Update placed count
+                        let placed_count = self.increment_placed();
+                        // Change to 'Moving' phase if all pieces have been placed
+                        if placed_count >= 9 {
+                            self.set_active_phase(GamePhase::Moving);
+                        }
                     }
 
                     // Update score
@@ -355,7 +534,13 @@ impl Game {
                     self.swap_turn();
                 }
             },
-            None => return,
+        }
+    }
+
+    pub fn active_game_state(&self) -> GamePhase {
+        match self.active_turn {
+            PlayerType::Player1 => return self.player1_phase.clone(),
+            PlayerType::Player2 => return self.player2_phase.clone(),
         }
     }
 }
@@ -465,7 +650,7 @@ async fn main() {
         if is_mouse_button_pressed(MouseButton::Left) {
             let (click_x, click_y) = mouse_position();
             let selected = game.select_position(click_x, click_y, p, &positions);
-            game.place_piece(selected);
+            game.next_action(selected);
         }
         next_frame().await;
     }
