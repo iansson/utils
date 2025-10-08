@@ -166,178 +166,137 @@ impl Game {
     }
 
     pub fn draw(&mut self, p: f32, x_offset: f32, positions: &HashMap<String, (f32, f32)>) {
-        draw_board(
-            p,
-            x_offset,
-            positions,
-            &mut self.board_state,
-            &self.holding_pos,
-        );
+        let color: Color = BROWN;
+        clear_background(BEIGE);
+
+        draw_lines(x_offset, p, color);
+        draw_markers(positions, p, color);
+        // draw_locks(positions, board_state, p);
+        self.draw_pieces(positions, p);
 
         let str = format!("{:?} | {:?}", self.active_turn, self.active_game_state());
         draw_text(&str, p / 2., p / 2., p / 2., BLACK);
 
-        fn draw_board(
-            p: f32,
-            x_offset: f32,
-            positions: &HashMap<String, (f32, f32)>,
-            board_state: &mut HashMap<String, Option<Piece>>,
-            skip_pos: &String,
-        ) {
-            clear_background(BEIGE);
-            let color: Color = BROWN;
+        fn draw_markers(positions: &HashMap<String, (f32, f32)>, p: f32, color: Color) {
+            let r = p / 6.5;
 
-            draw_lines(x_offset, p, color);
-            draw_markers(positions, p, color);
-            // draw_locks(positions, board_state, p);
-            draw_pieces(positions, board_state, p, skip_pos);
+            for (_key, (x, y)) in positions.iter() {
+                draw_circle(*x, *y, r, color);
+            }
+        }
 
-            fn draw_markers(positions: &HashMap<String, (f32, f32)>, p: f32, color: Color) {
-                let r = p / 6.5;
+        fn draw_lines(x_offset: f32, p: f32, color: Color) {
+            let line_width: f32 = 6.0;
+            let line_ext: f32 = line_width / 2.;
 
-                for (_key, (x, y)) in positions.iter() {
-                    draw_circle(*x, *y, r, color);
-                }
+            let (mut x1, mut y1) = (0., p);
+            let (mut x2, mut y2) = (p * 6., p);
+
+            // Draw the 3 first horizontal lines
+            for _ in 1..=3 {
+                draw_line(
+                    x_offset - line_ext + x1,
+                    y1,
+                    x_offset + line_ext + x2,
+                    y2,
+                    line_width,
+                    color,
+                );
+                (x1, y1) = (x1 + p, y1 + p);
+                (x2, y2) = (x2 - p, y1);
             }
 
-            // fn draw_locks(
-            //     positions: &HashMap<String, (f32, f32)>,
-            //     board_state: &mut HashMap<String, Option<Piece>>,
-            //     p: f32,
-            // ) {
-            //     let r = p / 3.6;
+            // Draw the next 3 horizontal lines
+            (x1, y1) = (p * 2., p * 5.);
+            (x2, y2) = (p * 4., y1);
 
-            //     for (key, (x, y)) in positions.iter() {
-            //         match &board_state[key] {
-            //             Some(piece) => {
-            //                 if piece.unlocked {
-            //                     continue;
-            //                 }
-            //             }
-            //             None => continue,
-            //         }
-
-            //         draw_circle(*x, *y, r, YELLOW);
-            //     }
-            // }
-
-            fn draw_pieces(
-                positions: &HashMap<String, (f32, f32)>,
-                board_state: &mut HashMap<String, Option<Piece>>,
-                p: f32,
-                skip_pos: &String,
-            ) {
-                let r = p / 4.;
-                let mut color: Color;
-
-                for (key, (x, y)) in positions.iter() {
-                    // Don't draw the skipped position
-                    if key == skip_pos {
-                        continue;
-                    }
-
-                    match &board_state[key] {
-                        Some(piece) => match piece.color {
-                            PlayerType::Player1 => color = WHITE,
-                            PlayerType::Player2 => color = BLACK,
-                        },
-                        None => continue,
-                    }
-
-                    draw_circle(*x, *y, r, color);
-                }
+            for _ in 1..=3 {
+                draw_line(
+                    x_offset + x1 - line_ext,
+                    y1,
+                    x_offset + line_ext + x2,
+                    y2,
+                    line_width,
+                    color,
+                );
+                (x1, y1) = (x1 - p, y1 + p);
+                (x2, y2) = (x2 + p, y1);
             }
 
-            fn draw_lines(x_offset: f32, p: f32, color: Color) {
-                let line_width: f32 = 6.0;
-                let line_ext: f32 = line_width / 2.;
-
-                let (mut x1, mut y1) = (0., p);
-                let (mut x2, mut y2) = (p * 6., p);
-
-                // Draw the 3 first horizontal lines
-                for _ in 1..=3 {
-                    draw_line(
-                        x_offset - line_ext + x1,
-                        y1,
-                        x_offset + line_ext + x2,
-                        y2,
-                        line_width,
-                        color,
-                    );
-                    (x1, y1) = (x1 + p, y1 + p);
-                    (x2, y2) = (x2 - p, y1);
-                }
-
-                // Draw the next 3 horizontal lines
-                (x1, y1) = (p * 2., p * 5.);
-                (x2, y2) = (p * 4., y1);
-
-                for _ in 1..=3 {
-                    draw_line(
-                        x_offset + x1 - line_ext,
-                        y1,
-                        x_offset + line_ext + x2,
-                        y2,
-                        line_width,
-                        color,
-                    );
-                    (x1, y1) = (x1 - p, y1 + p);
-                    (x2, y2) = (x2 + p, y1);
-                }
-
-                // Draw the 3 first vertical lines
-                (x1, y1) = (0., p);
-                (x2, y2) = (x1, y1 + p * 6.);
-                for _ in 1..=3 {
-                    draw_line(x_offset + x1, y1, x_offset + x2, y2, line_width, color);
-                    (x1, y1) = (x1 + p, y1 + p);
-                    (x2, y2) = (x1, y2 - p);
-                }
-
-                // Draw the next 3 vertical lines
-                (x1, y1) = (p * 4., p * 3.);
-                (x2, y2) = (x1, p * 5.);
-                for _ in 1..=3 {
-                    draw_line(x_offset + x1, y1, x_offset + x2, y2, line_width, color);
-                    (x1, y1) = (x1 + p, y1 - p);
-                    (x2, y2) = (x1, y2 + p);
-                }
-
-                // Draw the last 4 lines
-                draw_line(
-                    x_offset + p * 3.,
-                    p,
-                    x_offset + p * 3.,
-                    p * 3.,
-                    line_width,
-                    color,
-                ); // top vertical
-                draw_line(
-                    x_offset + p * 3.,
-                    p * 5.,
-                    x_offset + p * 3.,
-                    p * 7.,
-                    line_width,
-                    color,
-                ); // bottom vertical
-                draw_line(
-                    x_offset,
-                    p * 4.,
-                    x_offset + p * 2.,
-                    p * 4.,
-                    line_width,
-                    color,
-                ); // left horizontal
-                draw_line(
-                    x_offset + p * 4.,
-                    p * 4.,
-                    x_offset + p * 6.,
-                    p * 4.,
-                    line_width,
-                    color,
-                ); // right horizontal
+            // Draw the 3 first vertical lines
+            (x1, y1) = (0., p);
+            (x2, y2) = (x1, y1 + p * 6.);
+            for _ in 1..=3 {
+                draw_line(x_offset + x1, y1, x_offset + x2, y2, line_width, color);
+                (x1, y1) = (x1 + p, y1 + p);
+                (x2, y2) = (x1, y2 - p);
             }
+
+            // Draw the next 3 vertical lines
+            (x1, y1) = (p * 4., p * 3.);
+            (x2, y2) = (x1, p * 5.);
+            for _ in 1..=3 {
+                draw_line(x_offset + x1, y1, x_offset + x2, y2, line_width, color);
+                (x1, y1) = (x1 + p, y1 - p);
+                (x2, y2) = (x1, y2 + p);
+            }
+
+            // Draw the last 4 lines
+            draw_line(
+                x_offset + p * 3.,
+                p,
+                x_offset + p * 3.,
+                p * 3.,
+                line_width,
+                color,
+            ); // top vertical
+            draw_line(
+                x_offset + p * 3.,
+                p * 5.,
+                x_offset + p * 3.,
+                p * 7.,
+                line_width,
+                color,
+            ); // bottom vertical
+            draw_line(
+                x_offset,
+                p * 4.,
+                x_offset + p * 2.,
+                p * 4.,
+                line_width,
+                color,
+            ); // left horizontal
+            draw_line(
+                x_offset + p * 4.,
+                p * 4.,
+                x_offset + p * 6.,
+                p * 4.,
+                line_width,
+                color,
+            ); // right horizontal
+        }
+    }
+
+    fn draw_pieces(&self, positions: &HashMap<String, (f32, f32)>, p: f32) {
+        let skip_pos = &self.holding_pos;
+        let r = p / 4.;
+        let mut color: Color;
+
+        for (key, (x, y)) in positions.iter() {
+            // Don't draw the skipped position
+            if key == skip_pos {
+                continue;
+            }
+
+            match &self.board_state[key] {
+                Some(piece) => match piece.color {
+                    PlayerType::Player1 => color = WHITE,
+                    PlayerType::Player2 => color = BLACK,
+                },
+                None => continue,
+            }
+
+            draw_circle(*x, *y, r, color);
         }
     }
 
@@ -386,7 +345,10 @@ impl Game {
         let h_mill = &self.scoring_horisontal[h_i];
         let v_mill = &self.scoring_vertical[v_i];
 
-        println!("mills for {}: \nhorisontal{:?} \nvertical {:?}", pos, h_mill, v_mill);
+        println!(
+            "mills for {}: \nhorisontal{:?} \nvertical {:?}",
+            pos, h_mill, v_mill
+        );
 
         // Check if horisontal line scored
         let mut h_scored = true;
