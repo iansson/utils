@@ -18,7 +18,6 @@ enum GamePhase {
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 struct Piece {
     color: PlayerType,
-    unlocked: bool, // A locked piece may not be removed unless there are no other pieces available
 }
 
 struct Game {
@@ -35,32 +34,86 @@ struct Game {
     holding_piece: Option<Piece>,
     holding_pos: String,
 
-    scoring_vertical: Vec<Vec<String>>,
-    scoring_horisontal: Vec<Vec<String>>,
+    scoring_vertical: Vec<Mill>,
+    scoring_horisontal: Vec<Mill>,
+}
+
+#[derive(Clone, PartialEq, Eq, Debug)]
+struct Mill {
+    line: Vec<String>,
+    unlocked: bool,
 }
 
 impl Game {
     pub fn new() -> Game {
-        let scoring_vertical: Vec<Vec<String>> = vec![
-            vec!["a1".to_string(), "a2".to_string(), "a3".to_string()],
-            vec!["b1".to_string(), "b2".to_string(), "b3".to_string()],
-            vec!["c1".to_string(), "c2".to_string(), "c3".to_string()],
-            vec!["d1".to_string(), "d2".to_string(), "d3".to_string()],
-            vec!["e1".to_string(), "e2".to_string(), "e3".to_string()],
-            vec!["f1".to_string(), "f2".to_string(), "f3".to_string()],
-            vec!["g1".to_string(), "g2".to_string(), "g3".to_string()],
-            vec!["h1".to_string(), "h2".to_string(), "h3".to_string()],
+        let scoring_vertical: Vec<Mill> = vec![
+            Mill {
+                line: vec!["a1".to_string(), "a2".to_string(), "a3".to_string()],
+                unlocked: true,
+            },
+            Mill {
+                line: vec!["b1".to_string(), "b2".to_string(), "b3".to_string()],
+                unlocked: true,
+            },
+            Mill {
+                line: vec!["c1".to_string(), "c2".to_string(), "c3".to_string()],
+                unlocked: true,
+            },
+            Mill {
+                line: vec!["d1".to_string(), "d2".to_string(), "d3".to_string()],
+                unlocked: true,
+            },
+            Mill {
+                line: vec!["e1".to_string(), "e2".to_string(), "e3".to_string()],
+                unlocked: true,
+            },
+            Mill {
+                line: vec!["f1".to_string(), "f2".to_string(), "f3".to_string()],
+                unlocked: true,
+            },
+            Mill {
+                line: vec!["g1".to_string(), "g2".to_string(), "g3".to_string()],
+                unlocked: true,
+            },
+            Mill {
+                line: vec!["h1".to_string(), "h2".to_string(), "h3".to_string()],
+                unlocked: true,
+            },
         ];
 
-        let scoring_horisontal: Vec<Vec<String>> = vec![
-            vec!["a1".to_string(), "g1".to_string(), "c1".to_string()],
-            vec!["b1".to_string(), "g2".to_string(), "d1".to_string()],
-            vec!["e1".to_string(), "g3".to_string(), "f1".to_string()],
-            vec!["a2".to_string(), "b2".to_string(), "e2".to_string()],
-            vec!["f2".to_string(), "d2".to_string(), "c2".to_string()],
-            vec!["e3".to_string(), "h1".to_string(), "f3".to_string()],
-            vec!["b3".to_string(), "h2".to_string(), "d3".to_string()],
-            vec!["a3".to_string(), "h3".to_string(), "c3".to_string()],
+        let scoring_horisontal: Vec<Mill> = vec![
+            Mill {
+                line: vec!["a1".to_string(), "g1".to_string(), "c1".to_string()],
+                unlocked: true,
+            },
+            Mill {
+                line: vec!["b1".to_string(), "g2".to_string(), "d1".to_string()],
+                unlocked: true,
+            },
+            Mill {
+                line: vec!["e1".to_string(), "g3".to_string(), "f1".to_string()],
+                unlocked: true,
+            },
+            Mill {
+                line: vec!["a2".to_string(), "b2".to_string(), "e2".to_string()],
+                unlocked: true,
+            },
+            Mill {
+                line: vec!["f2".to_string(), "d2".to_string(), "c2".to_string()],
+                unlocked: true,
+            },
+            Mill {
+                line: vec!["e3".to_string(), "h1".to_string(), "f3".to_string()],
+                unlocked: true,
+            },
+            Mill {
+                line: vec!["b3".to_string(), "h2".to_string(), "d3".to_string()],
+                unlocked: true,
+            },
+            Mill {
+                line: vec!["a3".to_string(), "h3".to_string(), "c3".to_string()],
+                unlocked: true,
+            },
         ];
 
         return Game {
@@ -136,7 +189,7 @@ impl Game {
 
             draw_lines(x_offset, p, color);
             draw_markers(positions, p, color);
-            draw_locks(positions, board_state, p);
+            // draw_locks(positions, board_state, p);
             draw_pieces(positions, board_state, p, skip_pos);
 
             fn draw_markers(positions: &HashMap<String, (f32, f32)>, p: f32, color: Color) {
@@ -147,25 +200,26 @@ impl Game {
                 }
             }
 
-            fn draw_locks(
-                positions: &HashMap<String, (f32, f32)>,
-                board_state: &mut HashMap<String, Option<Piece>>,
-                p: f32,
-            ) {
-                let r = p / 3.6;
+            // fn draw_locks(
+            //     positions: &HashMap<String, (f32, f32)>,
+            //     board_state: &mut HashMap<String, Option<Piece>>,
+            //     p: f32,
+            // ) {
+            //     let r = p / 3.6;
 
-                for (key, (x, y)) in positions.iter() {
+            //     for (key, (x, y)) in positions.iter() {
+            //         match &board_state[key] {
+            //             Some(piece) => {
+            //                 if piece.unlocked {
+            //                     continue;
+            //                 }
+            //             }
+            //             None => continue,
+            //         }
 
-                    match &board_state[key] {
-                        Some(piece) => {
-                            if piece.unlocked {continue;}
-                        },
-                        None => continue,
-                    }
-
-                    draw_circle(*x, *y, r, YELLOW);
-                }
-            }
+            //         draw_circle(*x, *y, r, YELLOW);
+            //     }
+            // }
 
             fn draw_pieces(
                 positions: &HashMap<String, (f32, f32)>,
@@ -322,54 +376,81 @@ impl Game {
         return piece;
     }
 
+    // TODO: What if we call update score on the new and old position? That way, destroyed mills are updated
     pub fn update_score(&mut self, pos: String) -> bool {
-        // Check horisontal lines
-        let mut scored = self.get_score(pos.to_string(), &self.scoring_horisontal);
-        // Check vertical lines
-        scored = scored || self.get_score(pos.to_string(), &self.scoring_vertical);
+        // We need get these immutable values before borrowing mutably
+        let active_turn = self.active_turn;
 
-        // Give the score to the right player
-        // match self.active_turn {
-        //     PlayerType::Player1 => self.player1_score += score,
-        //     PlayerType::Player2 => self.player2_score += score,
-        // }
+        let (h_i, v_i) = self.get_mill_indices_from_pos(&pos);
 
-        return scored;
-    }
+        let h_mill = &self.scoring_horisontal[h_i];
+        let v_mill = &self.scoring_vertical[v_i];
 
-    fn get_score(&self, pos: String, scoring_vector: &Vec<Vec<String>>) -> bool {
-        let mut res = false;
-        for line in scoring_vector.iter() {
-            if !line.contains(&pos) {
-                continue;
-            }
+        println!("mills for {}: \nhorisontal{:?} \nvertical {:?}", pos, h_mill, v_mill);
 
-            // update score if line is filled by active player
-            let mut scored = true;
-            for scoring_pos in line {
-                match self.get_piece(scoring_pos.to_string()) {
-                    None => {
-                        scored = false;
+        // Check if horisontal line scored
+        let mut h_scored = true;
+        for h_pos in h_mill.line.iter() {
+            match self.board_state[h_pos] {
+                None => {
+                    h_scored = false;
+                    break;
+                }
+                Some(piece) => {
+                    if piece.color != active_turn {
+                        h_scored = false;
                         break;
                     }
-                    Some(piece) => {
-                        if piece.color != self.active_turn {
-                            scored = false;
-                            break;
-                        }
-                    }
-                }
-            }
-
-            if scored {
-                res = true;
-                for scoring_pos in line {
-                    let mut piece = self.get_piece(scoring_pos.to_string()).unwrap();
-                    piece.unlocked = false;
                 }
             }
         }
-        return res;
+
+        // Check if vertical line scored
+        let mut v_scored = true;
+        for v_pos in v_mill.line.iter() {
+            match self.board_state[v_pos] {
+                None => {
+                    v_scored = false;
+                    break;
+                }
+                Some(piece) => {
+                    if piece.color != active_turn {
+                        v_scored = false;
+                        break;
+                    }
+                }
+            }
+        }
+
+        self.scoring_horisontal[h_i].unlocked = !h_scored;
+        self.scoring_horisontal[v_i].unlocked = !v_scored;
+
+        return h_scored || v_scored;
+    }
+
+    fn get_mill_indices_from_pos(&self, pos: &String) -> (usize, usize) {
+        let mut h_i: Option<usize> = None;
+        let mut v_i: Option<usize> = None;
+        for (i, (h_mill, v_mill)) in self
+            .scoring_horisontal
+            .iter()
+            .zip(self.scoring_vertical.iter())
+            .enumerate()
+        {
+            if h_mill.line.contains(pos) {
+                h_i = Some(i);
+            }
+            if v_mill.line.contains(pos) {
+                v_i = Some(i);
+            }
+            if h_i.is_some() && v_i.is_some() {
+                break;
+            }
+        }
+        assert!(self.scoring_horisontal[h_i.unwrap()].line.contains(pos));
+        assert!(self.scoring_vertical[v_i.unwrap()].line.contains(pos));
+
+        return (h_i.unwrap(), v_i.unwrap());
     }
 
     fn set_active_phase(&mut self, phase: GamePhase) {
@@ -410,46 +491,46 @@ impl Game {
         // the resulting vector does not include the position in question
         // NOTE: to = position and from = self.holding_pos
 
-        let mut res = vec![];
+        let pos = self.holding_pos.to_string();
 
-        // Get valid horisontal moves
-        for line in self.scoring_horisontal.iter() {
-            if !line.contains(&self.holding_pos) {
-                continue;
-            }
-            res = _get_valid_move(line, &res, &self.holding_pos);
-            break;
-        }
-        // Get valid vertical moves
-        for line in self.scoring_vertical.iter() {
-            if !line.contains(&self.holding_pos) {
-                continue;
-            }
-            res = _get_valid_move(line, &res, &self.holding_pos);
-            break;
-        }
+        let (h_i, v_i) = self.get_mill_indices_from_pos(&pos);
 
-        return res;
+        let h_mill = &self.scoring_horisontal[h_i];
+        let v_mill = &self.scoring_vertical[v_i];
 
-        fn _get_valid_move(line: &Vec<String>, res: &Vec<String>, pos: &String) -> Vec<String> {
-            let mut res = res.to_vec();
+        // TOOD: Ensure mills gotten from get_mill_indices are correct
+
+        println!("{}", pos);
+
+        let res_h = _get_valid_move(&h_mill.line, &pos);
+        let res_v = _get_valid_move(&v_mill.line, &pos);
+
+        return vec![res_h, res_v].concat();
+
+        fn _get_valid_move(line: &Vec<String>, pos: &String) -> Vec<String> {
+            let mut res = vec![];
 
             // Find position
-            let mut relative_pos: usize = 42;
+            let mut relative_pos_option: Option<usize> = None;
+            println!("pos: {}\nline: {:?}", pos, line);
+
             for (i, i_pos) in line.iter().enumerate() {
                 if i_pos == pos {
-                    relative_pos = i;
+                    relative_pos_option = Some(i);
                 }
             }
 
-            match relative_pos {
-                0 => res.push(line[1].to_string()),
-                1 => {
-                    res.push(line[0].to_string());
-                    res.push(line[2].to_string());
-                }
-                2 => res.push(line[1].to_string()),
-                _ => panic!("Error: Faulty relative position '{}'", relative_pos),
+            match relative_pos_option {
+                None => panic!("Error: Given position does not exist in line"),
+                Some(relative_pos) => match relative_pos {
+                    0 => res.push(line[1].to_string()),
+                    1 => {
+                        res.push(line[0].to_string());
+                        res.push(line[2].to_string());
+                    }
+                    2 => res.push(line[1].to_string()),
+                    _ => panic!("Error: Faulty relative position '{}'", relative_pos),
+                },
             }
 
             return res;
@@ -464,7 +545,8 @@ impl Game {
                 match self.board_state[&pos] {
                     None => return,
                     Some(_) => {
-                        let unlocked_positions = self.get_unlocked_positions(self.opponent_color());
+                        let unlocked_positions =
+                            self.get_removable_positions(self.opponent_color());
 
                         // If requirements met, remove the piece
                         if unlocked_positions.len() == 0 || unlocked_positions.contains(&pos) {
@@ -474,12 +556,14 @@ impl Game {
                                 PlayerType::Player2 => self.player1_piece_total -= 1,
                             }
                             // Remove the piece from the board
-                            self.board_state.insert(pos, None);
+                            self.board_state.insert(pos.to_string(), None);
                             // Go back to the previous state
                             self.update_phase(self.active_turn);
 
                             // Swap turn
                             self.swap_turn();
+                            // Update lock for the removed position, in case a fully formed mill was destroyed
+                            self.update_score(pos);
                         }
                     }
                 }
@@ -510,19 +594,51 @@ impl Game {
         }
     }
 
-    fn get_unlocked_positions(&self, color: PlayerType) -> Vec<String> {
+    fn get_removable_positions(&self, color: PlayerType) -> Vec<String> {
         let mut res = vec![];
 
-        for (key, piece) in self.board_state.iter() {
-            match piece {
-                None => continue,
-                Some(piece) => {
-                    if piece.color == color && piece.unlocked {
-                        res.push(key.to_string());
+        for (h_mill, v_mill) in self
+            .scoring_horisontal
+            .iter()
+            .zip(self.scoring_vertical.iter())
+        {
+            if h_mill.unlocked {
+                for pos in h_mill.line.iter() {
+                    match self.board_state[pos] {
+                        Some(piece) => {
+                            if piece.color == color && !res.contains(pos) {
+                                res.push(pos.to_string())
+                            }
+                        }
+                        None => continue,
+                    }
+                }
+            }
+
+            if v_mill.unlocked {
+                for pos in v_mill.line.iter() {
+                    match self.board_state[pos] {
+                        Some(piece) => {
+                            if piece.color == color && !res.contains(pos) {
+                                res.push(pos.to_string())
+                            }
+                        }
+                        None => continue,
                     }
                 }
             }
         }
+
+        // for (key, piece) in self.board_state.iter() {
+        //     match piece {
+        //         None => continue,
+        //         Some(piece) => {
+        //             if piece.color == color && piece.unlocked {
+        //                 res.push(key.to_string());
+        //             }
+        //         }
+        //     }
+        // }
 
         return res;
     }
@@ -531,7 +647,7 @@ impl Game {
         // Check if we are already holding a piece
         match self.holding_piece {
             None => self.take_piece(position),
-            Some(piece) => self.move_piece_from_hand(position, piece),
+            Some(piece) => self.place_from_hand(position, piece),
         }
     }
 
@@ -552,7 +668,7 @@ impl Game {
         }
     }
 
-    fn move_piece_from_hand(&mut self, position: Option<String>, piece: Piece) {
+    fn place_from_hand(&mut self, position: Option<String>, piece: Piece) {
         match position {
             // Player didn't click on a valid marker
             None => return,
@@ -574,11 +690,14 @@ impl Game {
                         pos.to_string(),
                         Some(Piece {
                             color: self.active_turn,
-                            unlocked: true,
                         }),
                     );
+                    // Update locks in case moved piece formed a string
+                    self.update_score(pos.to_string());
                     // Remove piece from board
-                    self.board_state.insert(self.holding_pos.clone(), None);
+                    self.board_state.insert(self.holding_pos.to_string(), None);
+                    // Update locks for the removed piece
+                    self.update_score(self.holding_pos.to_string());
                     // Remove piece from hand
                     self.reset_hand_piece();
 
@@ -617,17 +736,13 @@ impl Game {
                         pos.to_string(),
                         Some(Piece {
                             color: self.active_turn,
-                            unlocked: true,
                         }),
                     );
 
                     if self.active_game_state() == GamePhase::Setup {
                         // Update placed count
-                        let placed_count = self.increment_placed();
+                        self.increment_placed();
                         // Change to 'Moving' phase if all pieces have been placed
-                        // if placed_count >= 9 {
-                        //     self.set_active_phase(GamePhase::Moving);
-                        // }
                         self.update_phase(self.active_turn);
                     }
 
