@@ -174,7 +174,10 @@ impl Game {
         self.draw_locks(positions, p);
         self.draw_pieces(positions, p);
 
-        let str = format!("{:?} | {:?}", self.active_turn, self.active_game_state());
+        let mut str = format!("{:?} | {:?}", self.active_turn, self.active_game_state());
+
+        if self.check_game_over() {str = format!("GAME OVER | {:?} | {:?}", self.active_turn, self.active_game_state());}
+
         draw_text(&str, p / 2., p / 2., p / 2., BLACK);
 
         fn draw_markers(positions: &HashMap<String, (f32, f32)>, p: f32, color: Color) {
@@ -473,11 +476,11 @@ impl Game {
         }
     }
 
-    fn get_valid_moves(&self) -> Vec<String> {
+    fn get_valid_moves(&self, pos: &String) -> Vec<String> {
         // the resulting vector does not include the position in question
         // NOTE: to = position and from = self.holding_pos
 
-        let pos = self.holding_pos.to_string();
+        // let pos = self.holding_pos.to_string();
 
         let (h_i, v_i) = self.get_mill_indices_from_pos(&pos);
 
@@ -667,7 +670,7 @@ impl Game {
                 None => {
                     // Verify position
                     if self.active_game_state() == GamePhase::Moving {
-                        let valid_moves = self.get_valid_moves();
+                        let valid_moves = self.get_valid_moves(&self.holding_pos);
                         if !valid_moves.contains(&pos) {
                             println!("Invalid move!");
                             return;
@@ -761,6 +764,35 @@ impl Game {
             PlayerType::Player1 => return PlayerType::Player2,
             PlayerType::Player2 => return PlayerType::Player1,
         }
+    }
+
+    pub fn check_game_over(&self) -> bool {
+        
+        // Condition 1: Current player has > 3 pieces left
+        match self.active_turn {
+            PlayerType::Player1 => if self.player1_piece_total < 3 { return true },
+            PlayerType::Player2 => if self.player2_piece_total < 3 { return true },
+        }
+        
+        // Condition 2: Current player has no legal moves
+        let mut total_legal_moves = vec![];
+        for (key, piece_opt) in self.board_state.iter() {
+            match piece_opt {
+                None => continue,
+                Some(piece) => {
+                    if piece.color == self.active_turn {
+                        let mut legal_moves = self.get_valid_moves(key);
+                        total_legal_moves.append(&mut legal_moves);
+                    }
+                }
+            }
+        }
+
+        if total_legal_moves.len() == 0 {
+            return true;
+        }
+
+        return false;
     }
 }
 
