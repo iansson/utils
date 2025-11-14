@@ -1,0 +1,7 @@
+name = "klonada"
+description = "Klondike but in Ada."
+version = "0.1.0-dev"
+
+authors = ["Tove Jansson"]
+
+executables = ["klonada"]
