@@ -5,5 +5,7 @@ Small utilities made by me for my own use. And also other projects.
 
 - [x] steganography (see [steganography](https://github.com/iansson/utils/blob/master/steganography/steganography.ipynb))
 - [x] a tool that remembers bash commands (see [remember](https://github.com/iansson/utils/tree/master/remember))
-- [ ] playable version of nine men's morris
+- [x] playable version of nine men's morris (kinda broken)
+- [ ] refactored nine men's morris
+- [ ] klondike in ada
 - [ ] a card game engine
