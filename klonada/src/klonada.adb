@@ -82,6 +82,7 @@ procedure Klonada is
 
    Message    : constant String := "Hello World ";
    Red_Code   : constant String := ESC & "[31m";
+   Yellow_Code : constant String := ESC & "[33m";
    Reset_Code : constant String := ESC & "[0m";
 
    --- FUNCTIONS AND PROCEDURES ---
@@ -139,7 +140,7 @@ procedure Klonada is
    begin
       declare
          Color_Code  : String :=
-           (if Get_Color (C.Suit) = Red then Red_Code else "");
+           (if Get_Color (C.Suit) = Red then Red_Code else Yellow_Code);
          Rank_Symbol : String := To_String (C.Rank);
          Suit_Symbol : String := To_String (C.Suit);
       begin
@@ -190,13 +191,13 @@ procedure Klonada is
          for I in 1 .. 13 loop
             declare
                Club_Card     : Card_Type :=
-                 (Suit => Clubs, Rank => I, Face_Up => True);
+                 (Suit => Clubs, Rank => I, Face_Up => False);
                Hearts_Card   : Card_Type :=
-                 (Suit => Hearts, Rank => I, Face_Up => True);
+                 (Suit => Hearts, Rank => I, Face_Up => False);
                Spades_Card   : Card_Type :=
-                 (Suit => Spades, Rank => I, Face_Up => True);
+                 (Suit => Spades, Rank => I, Face_Up => False);
                Diamonds_Card : Card_Type :=
-                 (Suit => Diamonds, Rank => I, Face_Up => True);
+                 (Suit => Diamonds, Rank => I, Face_Up => False);
             begin
                Deck.Append (Club_Card);
                Deck.Append (Hearts_Card);
@@ -234,7 +235,10 @@ procedure Klonada is
                Foundations(J).all.Append(Card);
             end;
          end loop;
+         -- `Foundations(I).all.Last` returns the index, which we give to all to access get the reference, i think
+         Foundations(I).all(Foundations(I).all.Last).Face_Up := True;
       end loop;
+
    end Game_Init;
 
 begin
