@@ -58,7 +58,7 @@ procedure Klonada is
    Pile6 : aliased Pile_Type;
    Pile7 : aliased Pile_Type;
 
-   Foundations : Pile_List (1 .. 7) :=
+   Tableau : Pile_List (1 .. 7) :=
      (Pile1'Access,
       Pile2'Access,
       Pile3'Access,
@@ -72,8 +72,8 @@ procedure Klonada is
    Diamonds_Pile : Pile_Type;
    Spades_Pile   : Pile_Type;
 
-   Draw_Pile    : Pile_Type;
-   Discard_Pile : Pile_Type;
+   Stock_Pile : Pile_Type;
+   Waste_Pile : Pile_Type;
 
    Selected_Card        : Card_Type;
    Selected_Destination : Position;
@@ -115,31 +115,25 @@ procedure Klonada is
       end case;
    end To_String;
 
+   function Integer_String_Slicer (N : Integer) return String is
+   begin
+      return N'Image (N'Image'First + 1 .. N'Image'Last);
+   end Integer_String_Slicer;
+
    function To_String (R : Rank_Type) return String is
    begin
       case R is
-         when 13     =>
+         when 13      =>
             return "K";
 
-         when 12     =>
+         when 12      =>
             return "Q";
 
-         when 11     =>
+         when 11      =>
             return "J";
 
-         when 10     =>
-            return
-              R'Image
-                (R'Image'First
-                 + 1
-                 .. R'Image'Last); -- slice of the leading space
-
-         when 1 .. 9 =>
-            return
-              R'Image
-                (R'Image'First
-                 + 1
-                 .. R'Image'Last); -- slice of the leading space
+         when 1 .. 10 =>
+            return Integer_String_Slicer (R);
       end case;
    end To_String;
 
@@ -177,21 +171,30 @@ procedure Klonada is
       end;
    end To_String;
 
+   function To_String_Simple (P : Pile_Type) return String is
+   begin
+      if Integer (P.Length) > 0 then
+         return To_String (P.Last_Element);
+      else
+         return " 0 ";
+      end if;
+   end To_String_Simple;
+
    procedure Pile_Init is
    begin
-      Pile_Map.Include ("z", Pile1);
-      Pile_Map.Include ("x", Pile2);
-      Pile_Map.Include ("c", Pile3);
-      Pile_Map.Include ("v", Pile4);
-      Pile_Map.Include ("b", Pile5);
-      Pile_Map.Include ("n", Pile6);
-      Pile_Map.Include ("m", Pile7);
+      Pile_Map.Include ("1", Pile1);
+      Pile_Map.Include ("2", Pile2);
+      Pile_Map.Include ("3", Pile3);
+      Pile_Map.Include ("4", Pile4);
+      Pile_Map.Include ("5", Pile5);
+      Pile_Map.Include ("6", Pile6);
+      Pile_Map.Include ("7", Pile7);
       Pile_Map.Include ("a", Spades_Pile);
       Pile_Map.Include ("s", Diamonds_Pile);
       Pile_Map.Include ("d", Clubs_Pile);
       Pile_Map.Include ("f", Hearts_Pile);
-      Pile_Map.Include ("q", Draw_Pile);
-      Pile_Map.Include ("w", Discard_Pile);
+      Pile_Map.Include ("q", Stock_Pile);
+      Pile_Map.Include ("w", Waste_Pile);
    end Pile_Init;
 
    procedure Create_Deck (Deck : in out Pile_Type) is
@@ -233,22 +236,61 @@ procedure Klonada is
    procedure Game_Init is
    begin
       -- Initialise draw pile
-      Create_Deck (Draw_Pile);
-      -- Initialise foundations
+      Create_Deck (Stock_Pile);
+      -- Initialise tableau
       for I in 1 .. 7 loop
          for J in I .. 7 loop
             declare
                Card : Card_Type;
             begin
-               Take_Random_Card (Draw_Pile, Card);
-               Foundations (J).all.Append (Card);
+               Take_Random_Card (Stock_Pile, Card);
+               Tableau (J).all.Append (Card);
             end;
          end loop;
          -- `Foundations(I).all.Last` returns the index, which we give to all to access get the reference, i think
-         Foundations (I).all (Foundations (I).all.Last).Face_Up := True;
+         Tableau (I).all (Tableau (I).all.Last).Face_Up := True;
       end loop;
 
    end Game_Init;
+
+   procedure Display_Board is
+   begin
+      -- Print the foundations
+      --  Put_Line ("|h| : " & To_String (Hearts_Pile));
+      --  Put_Line ("|c| : " & To_String (Clubs_Pile));
+      --  Put_Line ("|d| : " & To_String (Diamonds_Pile));
+      --  Put_Line ("|s| : " & To_String (Spades_Pile));
+      Put_Line ("");
+      Put_Line
+        ("|h| :"
+         & To_String_Simple (Hearts_Pile)
+         & "|c| :"
+         & To_String_Simple (Clubs_Pile)
+         & "|d| :"
+         & To_String_Simple (Diamonds_Pile)
+         & "|s| :"
+         & To_String_Simple (Spades_Pile));
+      --  Put_Line ("");
+
+      -- Print the tableau
+      declare
+         Index : Natural := 1;
+      begin
+         for Tableau_Ptr of Tableau loop
+            Put_Line
+              ("|"
+               & Integer_String_Slicer (Index)
+               & "| : "
+               & To_String (Tableau_Ptr.all));
+            Index := Index + 1;
+         end loop;
+      end;
+      Put_Line
+        ("Stock (q): "
+         & To_String_Simple (Stock_Pile)
+         & " Waste (w): "
+         & To_String_Simple (Waste_Pile));
+   end Display_Board;
 
 begin
    declare
@@ -256,13 +298,6 @@ begin
       --  Removed_Card : Card_Type;
    begin
       Game_Init;
-      for Foundation_Ptr of Foundations loop
-         declare
-            Foundation : Pile_Type := Foundation_Ptr.all;
-         begin
-            --  Put_Line (Foundation.Length'Image);
-            Put_Line (To_String (Foundation));
-         end;
-      end loop;
+      Display_Board;
    end;
 end Klonada;
