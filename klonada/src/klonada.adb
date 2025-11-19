@@ -185,11 +185,8 @@ procedure Klonada is
       Pile_Map.Include ("w", Discard_Pile);
    end Pile_Init;
 
-   function Create_Deck return Pile_Type is
+   procedure Create_Deck(Deck : in out Pile_Type) is
    begin
-      declare
-         Deck : Pile_Type;
-      begin
          for I in 1 .. 13 loop
             declare
                Club_Card     : Card_Type :=
@@ -207,11 +204,9 @@ procedure Klonada is
                Deck.Append (Diamonds_Card);
             end;
          end loop;
-         return Deck;
-      end;
    end Create_Deck;
 
-   procedure Take_Random_Card (Deck : in out Pile_Type; Card : out Card_Type)
+   procedure Take_Random_Card (Deck : in out Pile_Type; Card : out Card_Type) 
    is
       subtype Random_Range is Integer range 1 .. (Integer (Deck.Length)-1); -- why tho
       package R is new Ada.Numerics.Discrete_Random (Random_Range);
@@ -221,32 +216,33 @@ procedure Klonada is
    begin
       Reset(G);
       X := Random (G);
-      Put_Line ("Picked number: " & X'Image);
       Card := Deck (X);
       Deck.Delete (X);
    end Take_Random_Card;
 
-   procedure Foundations_Init is
-      Deck : Pile_Type := Create_Deck;
+   procedure Game_Init is
    begin
+      -- Initialise draw pile
+      Create_Deck(Draw_Pile);
+      -- Initialise foundations
       for I in 1..7 loop
          for J in I..7 loop
             declare 
                Card : Card_Type;
             begin
-               Take_Random_Card (Deck, Card);
+               Take_Random_Card (Draw_Pile, Card);
                Foundations(J).all.Append(Card);
             end;
          end loop;
       end loop;
-   end Foundations_Init;
+   end Game_Init;
 
 begin
    declare
       --  Deck : Pile_Type := Create_Deck;
       --  Removed_Card : Card_Type;
    begin
-      Foundations_Init;
+      Game_Init;
       for Foundation_Ptr of Foundations loop
          declare
             Foundation : Pile_Type := Foundation_Ptr.all;
