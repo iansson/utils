@@ -80,10 +80,10 @@ procedure Klonada is
 
    Pile_Map : Map;
 
-   Message    : constant String := "Hello World ";
-   Red_Code   : constant String := ESC & "[31m";
+   Message     : constant String := "Hello World ";
+   Red_Code    : constant String := ESC & "[31m";
    Yellow_Code : constant String := ESC & "[33m";
-   Reset_Code : constant String := ESC & "[0m";
+   Reset_Code  : constant String := ESC & "[0m";
 
    --- FUNCTIONS AND PROCEDURES ---
    function Get_Color (S : Suit_Type) return Color_Type is
@@ -119,19 +119,27 @@ procedure Klonada is
    begin
       case R is
          when 13     =>
-            return "K ";
+            return "K";
 
          when 12     =>
-            return "Q ";
+            return "Q";
 
          when 11     =>
-            return "J ";
+            return "J";
 
          when 10     =>
-            return R'Image;
+            return
+              R'Image
+                (R'Image'First
+                 + 1
+                 .. R'Image'Last); -- slice of the leading space
 
          when 1 .. 9 =>
-            return R'Image & " ";
+            return
+              R'Image
+                (R'Image'First
+                 + 1
+                 .. R'Image'Last); -- slice of the leading space
       end case;
    end To_String;
 
@@ -161,8 +169,8 @@ procedure Klonada is
          for C of P loop
             S_tmp := S_tmp & To_String (C);
          end loop;
-         declare 
-            S : String := To_String(S_tmp);
+         declare
+            S : String := To_String (S_tmp);
          begin
             return S;
          end;
@@ -186,36 +194,37 @@ procedure Klonada is
       Pile_Map.Include ("w", Discard_Pile);
    end Pile_Init;
 
-   procedure Create_Deck(Deck : in out Pile_Type) is
+   procedure Create_Deck (Deck : in out Pile_Type) is
    begin
-         for I in 1 .. 13 loop
-            declare
-               Club_Card     : Card_Type :=
-                 (Suit => Clubs, Rank => I, Face_Up => False);
-               Hearts_Card   : Card_Type :=
-                 (Suit => Hearts, Rank => I, Face_Up => False);
-               Spades_Card   : Card_Type :=
-                 (Suit => Spades, Rank => I, Face_Up => False);
-               Diamonds_Card : Card_Type :=
-                 (Suit => Diamonds, Rank => I, Face_Up => False);
-            begin
-               Deck.Append (Club_Card);
-               Deck.Append (Hearts_Card);
-               Deck.Append (Spades_Card);
-               Deck.Append (Diamonds_Card);
-            end;
-         end loop;
+      for I in 1 .. 13 loop
+         declare
+            Club_Card     : Card_Type :=
+              (Suit => Clubs, Rank => I, Face_Up => False);
+            Hearts_Card   : Card_Type :=
+              (Suit => Hearts, Rank => I, Face_Up => False);
+            Spades_Card   : Card_Type :=
+              (Suit => Spades, Rank => I, Face_Up => False);
+            Diamonds_Card : Card_Type :=
+              (Suit => Diamonds, Rank => I, Face_Up => False);
+         begin
+            Deck.Append (Club_Card);
+            Deck.Append (Hearts_Card);
+            Deck.Append (Spades_Card);
+            Deck.Append (Diamonds_Card);
+         end;
+      end loop;
    end Create_Deck;
 
-   procedure Take_Random_Card (Deck : in out Pile_Type; Card : out Card_Type) 
+   procedure Take_Random_Card (Deck : in out Pile_Type; Card : out Card_Type)
    is
-      subtype Random_Range is Integer range 1 .. (Integer (Deck.Length)-1); -- why tho
+      subtype Random_Range is
+        Integer range 1 .. (Integer (Deck.Length) - 1); -- why tho
       package R is new Ada.Numerics.Discrete_Random (Random_Range);
       use R;
       G : Generator;
       X : Random_Range;
    begin
-      Reset(G);
+      Reset (G);
       X := Random (G);
       Card := Deck (X);
       Deck.Delete (X);
@@ -224,19 +233,19 @@ procedure Klonada is
    procedure Game_Init is
    begin
       -- Initialise draw pile
-      Create_Deck(Draw_Pile);
+      Create_Deck (Draw_Pile);
       -- Initialise foundations
-      for I in 1..7 loop
-         for J in I..7 loop
-            declare 
+      for I in 1 .. 7 loop
+         for J in I .. 7 loop
+            declare
                Card : Card_Type;
             begin
                Take_Random_Card (Draw_Pile, Card);
-               Foundations(J).all.Append(Card);
+               Foundations (J).all.Append (Card);
             end;
          end loop;
          -- `Foundations(I).all.Last` returns the index, which we give to all to access get the reference, i think
-         Foundations(I).all(Foundations(I).all.Last).Face_Up := True;
+         Foundations (I).all (Foundations (I).all.Last).Face_Up := True;
       end loop;
 
    end Game_Init;
@@ -252,7 +261,7 @@ begin
             Foundation : Pile_Type := Foundation_Ptr.all;
          begin
             --  Put_Line (Foundation.Length'Image);
-            Put_Line (To_String(Foundation));
+            Put_Line (To_String (Foundation));
          end;
       end loop;
    end;
